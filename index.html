@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tarot BPJS // ORACLE</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght=0,400;0,600;1,400&display=swap" rel="stylesheet">
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Cormorant Garamond', serif;
+            background-color: #0f0f12;
+            color: #d1d1d6;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow-x: hidden;
+        }
+        .container { width: 100%; max-width: 1200px; padding: 20px; text-align: center; }
+        
+        .screen { display: none; opacity: 0; transition: opacity 0.5s ease-in-out; }
+        .screen.active { display: block; opacity: 1; }
+        
+        h1 { font-size: 2.5rem; margin-bottom: 20px; color: #c5a47e; letter-spacing: 2px; font-weight: 400; }
+        textarea {
+            width: 100%; max-width: 600px; height: 100px; background-color: transparent;
+            border: 1px solid #444; border-bottom: 2px solid #c5a47e; color: #fff;
+            padding: 15px; font-size: 1.3rem; resize: none; margin-bottom: 15px;
+            outline: none; font-family: 'Cormorant Garamond', serif; text-align: center;
+        }
+        
+        
+        .error-message {
+            color: #ff6b6b;
+            font-size: 1.2rem;
+            margin-bottom: 20px;
+            height: 25px;
+            font-style: italic;
+            visibility: hidden;
+        }
+        
+        button {
+            background-color: transparent; color: #c5a47e; border: 1px solid #c5a47e;
+            padding: 10px 40px; font-size: 1.2rem; cursor: pointer; transition: all 0.3s; letter-spacing: 1px;
+        }
+        button:hover { background-color: #c5a47e; color: #0f0f12; }
+        .shuffle-container { height: 200px; display: flex; justify-content: center; align-items: center; }
+        
+        .loader {
+            width: 25px; height: 50px; display: grid; color: #c5a47e;
+            background:
+                linear-gradient(currentColor 0 0) top/100% 2px,
+                radial-gradient(farthest-side at top, #0000 calc(100% - 2px),currentColor calc(100% - 1px) ,#0000) top,
+                linear-gradient(currentColor 0 0) bottom/100% 2px,
+                radial-gradient(farthest-side at bottom, #0000 calc(100% - 2px),currentColor calc(100% - 1px) ,#0000) bottom;
+            background-size: 100% 1px,100% 50%; background-repeat: no-repeat; animation: l18 4s infinite linear;
+        }
+        .loader::before, .loader::after { content: ""; grid-area: 1/1; background: inherit; border: inherit; animation: inherit; }
+        .loader::after { animation-duration: 2s; }
+        @keyframes l18 { 100% {transform: rotate(1turn)} }
+
+        .spread-wrapper { width: 100%; overflow-x: auto; padding: 50px 0; display: flex; justify-content: center; }
+        .spread-container { display: flex; padding: 0 40px; min-width: min-content; }
+        .spread-card {
+            width: 90px; height: 150px; background-color: #1a1a1f; border: 1px solid #c5a47e;
+            border-radius: 5px; margin-right: -50px; cursor: pointer; transition: all 0.3s ease;
+            box-shadow: -2px 0 10px rgba(0,0,0,0.5); position: relative;
+        }
+        .spread-card:hover { transform: translateY(-20px); margin-right: -20px; z-index: 100 !important; }
+        .spread-card.selected { transform: translateY(-40px); background-color: #c5a47e; z-index: 100 !important; pointer-events: none; }
+        
+        .result-container { display: flex; justify-content: center; gap: 20px; margin-top: 30px; flex-wrap: wrap; }
+        .result-card { background-color: #1a1a1e; border: 1px solid #333; width: 160px; padding: 15px; text-align: center; box-shadow: 0 5px 15px rgba(0,0,0,0.3); }
+        .result-img-box { width: 100%; overflow: hidden; margin-bottom: 10px; border: 1px solid #c5a47e; display: flex; justify-content: center; }
+        .result-img { width: 100%; height: auto; display: block; max-height: 200px; object-fit: contain; }
+        .card-position { font-size: 1.1rem; color: #888; margin-bottom: 3px; }
+        .card-title { font-size: 1.3rem; color: #c5a47e; line-height: 1.2; margin-bottom: 3px; }
+        .card-orientation { font-size: 0.9rem; color: #666; letter-spacing: 1px; }
+        
+        .conclusion-box {
+            max-width: 800px; margin: 40px auto 20px auto; background: linear-gradient(135deg, #16161a 0%, #1f1f26 100%);
+            border: 1px solid #c5a47e; padding: 35px; text-align: left; box-shadow: 0 15px 35px rgba(0,0,0,0.6);
+            border-radius: 4px;
+        }
+        .conclusion-title { font-size: 1.8rem; color: #c5a47e; margin-bottom: 20px; letter-spacing: 1px; font-weight: 400; text-align: center; border-bottom: 1px solid #3a3a42; padding-bottom: 10px; }
+        .conclusion-text { font-size: 1.3rem; line-height: 1.8; color: #e2e8f0; text-align: justify; }
+        
+        .user-question { font-style: italic; color: #c5a47e; font-size: 1.4rem; margin-bottom: 30px; }
+        #selectCount { font-size: 1.4rem; color: #c5a47e; margin-bottom: 20px; }
+        .ai-loading-text { font-size: 1.3rem; color: #888; margin-top: 20px; font-style: italic; }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <div id="screen1" class="screen active">
+            <h1>The Oracle Awaits</h1>
+            <textarea id="questionInput" placeholder="Ask a question..."></textarea>
+            <div id="errorText" class="error-message">Please enter a clear question for the oracle.</div>
+            <button onclick="startShuffle()">Seek Guidance</button>
+        </div>
+
+        <div id="screen2" class="screen">
+            <h1>Reading the Currents of Fate</h1>
+            <div class="shuffle-container">
+                <div class="loader"></div>
+            </div>
+        </div>
+
+        <div id="screen3" class="screen">
+            <h1>Choose Three Cards</h1>
+            <p id="selectCount">0 of 3 Selected</p>
+            <div class="spread-wrapper">
+                <div class="spread-container" id="spreadContainer"></div>
+            </div>
+        </div>
+
+        <div id="screen4" class="screen">
+            <h1>Channelling the Cosmos</h1>
+            <div class="shuffle-container">
+                <div class="loader"></div>
+            </div>
+            <p class="ai-loading-text">The AI is weaving the cards into your personal story...</p>
+        </div>
+
+        <div id="screen5" class="screen">
+            <h1>The Revelation</h1>
+            <p class="user-question" id="displayQuestion"></p>
+            
+            <div class="result-container" id="resultContainer"></div>
+            
+            <div class="conclusion-box" id="conclusionBox" style="display: none;">
+                <div class="conclusion-title">The Oracle's Verdict</div>
+                <div class="conclusion-text" id="conclusionText"></div>
+            </div>
+            
+            <br><br>
+            <button onclick="restartApp()">Consult Again</button>
+        </div>
+    </div>
+
+    <script>
+        const GEMINI_API_KEY = "AQ.Ab8RN6LVL0XQIOdmnwunbpgU1C5BMpz3HdNHIWpuhxhdVFCiVg"; 
+
+        const majorArcanaDeck = [
+            { name: "0 - The Fool", src: "https://calmoura.com/cdn/shop/files/the-fool-upright.png" },
+            { name: "I - The Magician", src: "https://calmoura.com/cdn/shop/files/the-magician-upright.png" },
+            { name: "II - The High Priestess", src: "https://calmoura.com/cdn/shop/files/the-high-priestess-upright.png" },
+            { name: "III - The Empress", src: "https://calmoura.com/cdn/shop/files/the-empress-upright.png" },
+            { name: "IV - The Emperor", src: "https://calmoura.com/cdn/shop/files/the-emperor-upright.png" },
+            { name: "V - The Hierophant", src: "https://calmoura.com/cdn/shop/files/The_Hierophant_upright.png" },
+            { name: "VI - The Lovers", src: "https://calmoura.com/cdn/shop/files/the_lovers_upright.png" },
+            { name: "VII - The Chariot", src: "https://calmoura.com/cdn/shop/files/the_chariot_upright.png" },
+            { name: "VIII - Strength", src: "https://calmoura.com/cdn/shop/files/strength_upright.png" },
+            { name: "IX - The Hermit", src: "https://calmoura.com/cdn/shop/files/the_hermit_upright.png" },
+            { name: "X - Wheel of Fortune", src: "https://calmoura.com/cdn/shop/files/wheel_of_fortune_upright.png" },
+            { name: "XI - Justice", src: "https://calmoura.com/cdn/shop/files/justice_upright.png" },
+            { name: "XII - The Hanged Man", src: "https://calmoura.com/cdn/shop/files/the_hanged_man_upright.png" },
+            { name: "XIII - Death", src: "https://calmoura.com/cdn/shop/files/death_upright.png" },
+            { name: "XIV - Temperance", src: "https://calmoura.com/cdn/shop/files/Temperance_upright.png" },
+            { name: "XV - The Devil", src: "https://calmoura.com/cdn/shop/files/the_devil_upright.png" },
+            { name: "XVI - The Tower", src: "https://calmoura.com/cdn/shop/files/the_tower_upright.png" },
+            { name: "XVII - The Star", src: "https://calmoura.com/cdn/shop/files/the-star-upright.png" },
+            { name: "XVIII - The Moon", src: "https://calmoura.com/cdn/shop/files/the_moon_upright.png" },
+            { name: "XIX - The Sun", src: "https://calmoura.com/cdn/shop/files/the-sun-upright.png" },
+            { name: "XX - Judgement", src: "https://calmoura.com/cdn/shop/files/judgement_upright.png" },
+            { name: "XXI - The World", src: "https://calmoura.com/cdn/shop/files/the-world-upright.png" }
+        ];
+
+        let selectedCards = [];
+        let userQuestion = "";
+        const totalCardsToSelect = 3;
+
+        function navigate(screenId) {
+            const allScreens = document.querySelectorAll('.screen');
+            allScreens.forEach(screen => screen.classList.remove('active'));
+            const targetScreen = document.getElementById(screenId);
+            if (targetScreen) targetScreen.classList.add('active');
+        }
+
+        // Frontend validation to check if the text looks like an actual question
+        function validateQuestion(text) {
+            const trimmed = text.trim();
+            if (trimmed.length < 10) return false; // Too short to be a valid inquiry
+            
+            // Checking common question indicators in English and Indonesian
+            const questionWords = [
+                'will', 'should', 'can', 'is', 'am', 'are', 'do', 'does', 'did', 'how', 'when', 'what', 'where', 'who', 'why',
+                'apakah', 'kapan', 'bisa', 'akankah', 'bagaimana', 'apa', 'siapa', 'mengapa', 'bolehkah', 'haruskah', 'ga', 'nggak', 'beneran'
+            ];
+            
+            const containsQuestionWord = questionWords.some(word => new RegExp('\\b' + word + '\\b', 'i').test(trimmed));
+            const endsWithQuestionMark = trimmed.endsWith('?');
+            
+            return containsQuestionWord || endsWithQuestionMark;
+        }
+
+        function startShuffle() {
+            const inputEl = document.getElementById('questionInput');
+            const errorEl = document.getElementById('errorText');
+            userQuestion = inputEl.value.trim();
+            
+            if (!validateQuestion(userQuestion)) {
+                errorEl.innerText = "Please enter a clear, specific question (e.g., 'Will I find a boyfriend this year?'). Random words or non-questions are not permitted.";
+                errorEl.style.visibility = "visible";
+                return;
+            }
+            
+            errorEl.style.visibility = "hidden";
+            document.getElementById('displayQuestion').innerText = `Your Inquiry: "${userQuestion}"`;
+            
+            navigate('screen2');
+            setTimeout(() => {
+                generateSpread();
+                navigate('screen3');
+            }, 3000);
+        }
+
+        function generateSpread() {
+            const container = document.getElementById('spreadContainer');
+            container.innerHTML = '';
+            selectedCards = [];
+            document.getElementById('selectCount').innerText = `0 of ${totalCardsToSelect} Selected`;
+
+            let shuffledDeck = [...majorArcanaDeck].sort(() => 0.5 - Math.random());
+
+            for (let i = 0; i < shuffledDeck.length; i++) {
+                const card = document.createElement('div');
+                card.classList.add('spread-card');
+                card.style.zIndex = i;
+                card.onclick = () => {
+                    const isReversed = Math.random() < 0.25; 
+                    selectCard(card, shuffledDeck[i], isReversed);
+                };
+                container.appendChild(card);
+            }
+        }
+
+        function selectCard(element, data, isRev) {
+            if (selectedCards.length >= totalCardsToSelect || element.classList.contains('selected')) return;
+            
+            element.classList.add('selected');
+            selectedCards.push({ ...data, isRev });
+            document.getElementById('selectCount').innerText = `${selectedCards.length} of ${totalCardsToSelect} Selected`;
+            
+            if (selectedCards.length === totalCardsToSelect) {
+                setTimeout(() => {
+                    navigate('screen4'); 
+                    fetchAIInterpretation(); 
+                }, 600);
+            }
+        }
+
+        async function fetchAIInterpretation() {
+            const labels = ["Past", "Present", "Future"];
+            const cardDetails = selectedCards.map((card, idx) => {
+                return `${labels[idx]}: ${card.name} (${card.isRev ? 'Reversed' : 'Upright'})`;
+            }).join(", ");
+
+            const promptText = `You are an intuitive, sharp, and witty master of tarot reading. The user asked this specific question: "${userQuestion}". 
+            They drew these 3 cards: ${cardDetails}.
+            
+            CRITICAL EVALUATION STEP:
+            First, evaluate if the input "${userQuestion}" is a real, sincere question or inquiry. If it is complete nonsense, a random keyboard smash, or completely unrelated statement, your entire response in "final_conclusion" must politely but firmly explain that the oracle cannot read unstructured text and needs a clear question to channel the cards.
+            
+            IF IT IS A VALID QUESTION:
+            Analyze the connection between the user's explicit question and the drawn cards. You must answer in ENGLISH.
+            Your response must be a direct, concrete, and predictive verdict that explicitly answers the core of their question. 
+            
+            CRITICAL RULES:
+            - Give an actual prediction regarding the timeline, likelihood, probability, or concrete situational outcome based on the cards (e.g., "Yes, this asset is coming your way around...", "A romantic connection is highly likely to manifest within...", "The signs point to a temporary shift because...").
+            - Do NOT use generic self-help templates or tell them to "focus on yourself" or "look inward" unless it directly explains a material or situational delay asked in the question.
+            - Provide a single, blended master response that weaves the energies of all 3 cards together seamlessly to provide a final oracle outcome. Do not write separate breakdown paragraphs for individual cards.
+            
+            Return ONLY a valid JSON object with this exact key: "final_conclusion". Do not include any markdown backticks, intro text, or extra characters. Just raw JSON text.`;
+
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 9500);
+
+            try {
+                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        contents: [{ parts: [{ text: promptText }] }]
+                    }),
+                    signal: controller.signal
+                });
+
+                clearTimeout(timeoutId);
+                const data = await response.json();
+                let rawText = data.candidates[0].content.parts[0].text.trim();
+                
+                if (rawText.includes("```")) {
+                    rawText = rawText.replace(/```json/gi, "").replace(/```/g, "").trim();
+                }
+                
+                const startIdx = rawText.indexOf('{');
+                const endIdx = rawText.lastIndexOf('}');
+                if (startIdx !== -1 && endIdx !== -1) {
+                    rawText = rawText.substring(startIdx, endIdx + 1);
+                }
+
+                const interpretations = JSON.parse(rawText);
+                renderResults(interpretations);
+                
+            } catch (error) {
+                console.warn("Fallback triggered:", error);
+                clearTimeout(timeoutId);
+                
+                let dynamicFallback = "";
+                const lowerQ = userQuestion.toLowerCase();
+                
+                if (lowerQ.includes("laptop") || lowerQ.includes("hp") || lowerQ.includes("phone") || lowerQ.includes("buy") || lowerQ.includes("dapet")) {
+                    dynamicFallback = `Regarding your inquiry about acquiring a new device, the presence of ${selectedCards[1].name} and ${selectedCards[2].name} predicts a highly favorable material alignment. The cards indicate a swift shift in resources or unexpected support, suggesting that this acquisition is very likely to materialize within the upcoming months as the cosmic gears lock into place.`;
+                } else if (lowerQ.includes("cowo") || lowerQ.includes("pacar") || lowerQ.includes("boyfriend") || lowerQ.includes("love") || lowerQ.includes("relationship")) {
+                    dynamicFallback = `Looking at your romantic prospects for this year, the alignment of ${selectedCards[1].name} and the future energy of ${selectedCards[2].name} predicts a distinct turning point in your social circle. A new emotional connection or unexpected encounter is strongly indicated to manifest before the year concludes, introducing a dynamic spark that directly answers your path.`;
+                } else {
+                    dynamicFallback = `Based on the active combination of ${selectedCards[0].name}, ${selectedCards[1].name}, and ${selectedCards[2].name}, the oracle predicts a direct and tangible resolution to your question: "${userQuestion}". Events are moving swiftly in the background, and the currents indicate a significant external breakthrough or change in circumstances arriving in the near future.`;
+                }
+                
+                renderResults({ final_conclusion: dynamicFallback });
+            }
+        }
+
+        function renderResults(aiData) {
+            const container = document.getElementById('resultContainer');
+            container.innerHTML = '';
+            
+            const displayLabels = ["Past", "Present", "Future"];
+
+            selectedCards.forEach((card, i) => {
+                const div = document.createElement('div');
+                div.classList.add('result-card');
+                
+                const displayOrientation = card.isRev ? "Reversed" : "Upright";
+                const imgStyle = card.isRev ? "transform: rotate(180deg);" : "";
+                
+                div.innerHTML = `
+                    <div class="card-position">${displayLabels[i]}</div>
+                    <div class="result-img-box"><img src="${card.src}" class="result-img" style="${imgStyle}"></div>
+                    <div class="card-title">${card.name}</div>
+                    <div class="card-orientation">${displayOrientation}</div>
+                `;
+                container.appendChild(div);
+            });
+            
+            const conclusionBox = document.getElementById('conclusionBox');
+            const conclusionText = document.getElementById('conclusionText');
+            
+            if (aiData.final_conclusion) {
+                conclusionText.innerText = aiData.final_conclusion;
+                conclusionBox.style.display = "block"; 
+            } else {
+                conclusionBox.style.display = "none";
+            }
+            
+            navigate('screen5'); 
+        }
+
+        function restartApp() {
+            document.getElementById('questionInput').value = '';
+            document.getElementById('conclusionBox').style.display = "none";
+            document.getElementById('errorText').style.visibility = "hidden";
+            navigate('screen1');
+        }
+    </script>
+</body>
+</html>
+
